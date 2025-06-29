@@ -1,27 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="../favicon.png" type="image/png">
-    <title>知识图谱-朱翊钧</title>
+    <title>朱翊钧关系知识图谱</title>
     <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@400;700&display=swap"
         rel="stylesheet">
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
             font-family: 'Noto Serif SC', serif;
             background-color: #f8f4e3;
             color: #333;
             overflow: hidden;
+            height: 100vh;
+            position: relative;
         }
 
         #network-container {
             width: 100vw;
             height: 100vh;
             background-image: linear-gradient(to bottom right, #f8f4e3, #f0e6c0);
-            border: none;
         }
 
         .info-panel {
@@ -36,6 +43,8 @@
             border-left: 4px solid #8b0000;
             transition: all 0.3s ease;
             z-index: 1000;
+            max-height: 80vh;
+            overflow-y: auto;
         }
 
         .info-panel h3 {
@@ -44,6 +53,7 @@
             font-size: 1.5rem;
             border-bottom: 1px solid #eee;
             padding-bottom: 10px;
+            font-family: 'Ma Shan Zheng', cursive;
         }
 
         .info-panel p {
@@ -53,6 +63,18 @@
 
         .info-panel strong {
             color: #555;
+        }
+
+        .info-panel .node-link {
+            color: #8b0000;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .info-panel .node-link:hover {
+            color: #b38f2b;
+            text-decoration: none;
         }
 
         .btn {
@@ -65,7 +87,7 @@
             font-size: 1rem;
             font-family: 'Noto Serif SC', serif;
             text-align: center;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: all 0.3s ease;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             position: relative;
@@ -147,6 +169,284 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* 搜索相关样式 - 美化版 */
+        .search-container {
+            position: fixed;
+            top: 100px;
+            left: 160px;
+            z-index: 1100;
+            display: flex;
+            flex-direction: column;
+            max-width: 350px;
+        }
+
+        .search-input-container {
+            display: flex;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            border: 2px solid #d4a76a;
+            transition: all 0.3s ease;
+        }
+
+        .search-input-container:focus-within {
+            border-color: #8b0000;
+            box-shadow: 0 4px 20px rgba(139, 0, 0, 0.25);
+        }
+
+        #search-input {
+            flex: 1;
+            padding: 15px 25px;
+            border: none;
+            outline: none;
+            font-size: 1rem;
+            font-family: 'Noto Serif SC', serif;
+            background: transparent;
+            min-width: 300px;
+            color: #5D4037;
+        }
+
+        #search-input::placeholder {
+            color: #ab8d5f;
+        }
+
+        .search-icon {
+            padding: 15px 20px;
+            background: #8b0000;
+            color: #FFD700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+        }
+
+        .search-icon:hover {
+            background: #b38f2b;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 253, 246, 0.98);
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 8px 25px rgba(139, 0, 0, 0.15);
+            margin-top: 2px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1101;
+            display: none;
+            border: 1px solid #d4a76a;
+            border-top: none;
+        }
+
+        .autocomplete-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+            font-family: 'Noto Serif SC', serif;
+            border-bottom: 1px solid #f0e6c0;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background-color: #f8f4e3;
+        }
+
+        .autocomplete-item .item-name {
+            font-weight: 700;
+            color: #8b0000;
+            flex: 1;
+        }
+
+        .autocomplete-item .item-group {
+            background: #8b0000;
+            color: #FFD700;
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 15px;
+            margin-left: 10px;
+            font-weight: 500;
+        }
+
+        .search-history {
+            position: absolute;
+            top: 165px;
+            left: 0;
+            width: 350px;
+            background: rgba(255, 253, 246, 0.98);
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 8px 30px rgba(139, 0, 0, 0.2);
+            z-index: 1100;
+            display: none;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #d4a76a;
+        }
+
+        .search-history-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px 15px 15px;
+            border-bottom: 2px solid #f0e6c0;
+            font-family: 'Ma Shan Zheng', cursive;
+        }
+
+        .search-history-title strong {
+            color: #8b0000;
+            font-size: 1.2rem;
+        }
+
+        .history-clear {
+            background: none;
+            border: none;
+            color: #b38f2b;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        .history-cclear:hover {
+            color: #8b0000;
+        }
+
+        .search-history-item {
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background-color: #f8f4e3;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Noto Serif SC', serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(139, 0, 0, 0.08);
+        }
+
+        .search-history-item:hover {
+            background-color: #f0e6c0;
+            transform: translateX(5px);
+        }
+
+        .search-history-item span {
+            color: #b38f2b;
+            font-weight: bold;
+        }
+
+        .no-history {
+            padding: 20px;
+            color: #ab8d5f;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .search-toggle {
+            position: fixed;
+            top: 110px;
+            left: 105px;
+            color: #8b0000;
+            background: rgba(255, 253, 246, 0.9);
+            border-radius: 50%;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1100;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            font-size: 1.3rem;
+            border: 2px solid #d4a76a;
+            transition: all 0.3s ease;
+        }
+
+        .search-toggle:hover {
+            background: #ffffff;
+            transform: rotate(15deg);
+            box-shadow: 0 5px 15px rgba(139, 0, 0, 0.2);
+        }
+
+        .search-message {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, #8b0000, #b38f2b);
+            padding: 12px 30px;
+            border-radius: 30px;
+            box-shadow: 0 3px 15px rgba(139, 0, 0, 0.3);
+            z-index: 1100;
+            display: none;
+            font-family: 'Noto Serif SC', serif;
+            color: #fff;
+            font-weight: 500;
+            text-align: center;
+            min-width: 280px;
+        }
+
+        /* 节点缩放控制 */
+        .zoom-controls {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            z-index: 900;
+        }
+
+        .zoom-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            color: #8b0000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 5px 0;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+            border: 2px solid #d4a76a;
+        }
+
+        .zoom-btn:hover {
+            background: #b38f2b;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        /* 搜索结果高亮动画 */
+        @keyframes highlight-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(255, 215, 0, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+            }
+        }
+
+        .highlighted {
+            animation: highlight-pulse 1.5s ease;
+        }
     </style>
 </head>
 
@@ -154,9 +454,37 @@
     <a href="../content.html" class="btn btn-return">
         返回人物信息页面
     </a>
+
+    <div class="search-toggle">🔍</div>
+
+    <div class="search-container">
+        <div class="search-input-container">
+            <input type="text" id="search-input" placeholder="输入关键词查找节点（如：朱翊钧）">
+            <div class="search-icon">🔍</div>
+        </div>
+        <div class="autocomplete-list" id="autocomplete-list"></div>
+    </div>
+
+    <div class="search-history" id="search-history">
+        <div class="search-history-title">
+            <strong>搜索历史</strong>
+            <button class="history-clear">清除全部</button>
+        </div>
+        <div id="history-items">
+            <div class="no-history">暂无搜索历史记录</div>
+        </div>
+    </div>
+
+    <div class="search-message" id="search-message"></div>
+
     <div id="network-container"></div>
     <div id="info-panel" class="info-panel" style="display: none"></div>
     <div class="title-overlay">朱翊钧关系知识图谱</div>
+
+    <div class="zoom-controls">
+        <div class="zoom-btn" id="zoom-in">+</div>
+        <div class="zoom-btn" id="zoom-out">−</div>
+    </div>
 
     <!-- 加载动画 -->
     <div class="loading" id="loading">
@@ -165,6 +493,7 @@
     </div>
 
     <script>
+        // 原始数据
         const dataset = [
             {
                 "@context": "https://schema.org",
@@ -184,7 +513,6 @@
                     { "@id": "#zhuchangxun", "角色": "福王" }
                 ],
                 "职业": {
-                    "@type": "Occupation",
                     "职位名称": "明朝皇帝",
                     "任期开始": "1572",
                     "任期结束": "1620"
@@ -466,14 +794,13 @@
                 "功能": "北方边防",
                 "组成": ["辽东镇", "蓟州镇"]
             }
-        ]
-
+        ];
 
         // 创建节点和边的容器
         const nodes = new vis.DataSet([]);
         const edges = new vis.DataSet([]);
 
-        // 节点样式配置 - 更新样式
+        // 节点样式配置
         const typeStyles = {
             Person: {
                 color: {
@@ -529,21 +856,48 @@
                 },
                 shadow: { enabled: true, color: 'rgba(0,0,0,0.2)', size: 8 }
             },
+            Location: {
+                color: {
+                    background: "radial-gradient(circle, #FFA07A 0%, #CD5C5C 100%)",
+                    border: "#cd5c5c",
+                    highlight: { background: "#FF7F50", border: "#CD5C5C" }
+                },
+                shape: "square",
+                borderWidth: 2,
+                size: 35,
+                font: {
+                    color: "#8B0000",
+                    size: 16,
+                    face: 'Ma Shan Zheng',
+                    strokeWidth: 2,
+                    strokeColor: "#ffffff"
+                },
+                shadow: { enabled: true, color: 'rgba(0,0,0,0.2)', size: 8 }
+            },
         };
 
-        // 预设位置映射
-        const presetPositions = {
-            "#mingtaizu": { x: 0, y: 0 },  // 朱元璋为中心
-            "#empress_ma": { x: -150, y: -100 },  // 马皇后在左上
-            "#zhubiao": { x: 150, y: -100 },  // 朱标在右上
-            "#zhudi": { x: 200, y: 50 },  // 朱棣在右侧
-            "#liubowen": { x: -200, y: 50 },  // 刘伯温在左侧
-            "#chenyouliang": { x: 0, y: 200 },  // 陈友谅在下方
-            "#xuda": { x: -150, y: 150 },  // 徐达在左下
-        };
+        // 节点ID与类型映射
+        const nodeIdToType = {};
+
+        // 所有节点ID列表
+        const allNodeIds = [];
+
+        // 存储所有节点的名称和ID用于搜索
+        const searchIndex = [];
 
         // 解析数据
         dataset.forEach((entity) => {
+            const nodeId = entity["@id"];
+            nodeIdToType[nodeId] = entity["@type"];
+            allNodeIds.push(nodeId);
+
+            // 为搜索索引添加条目
+            searchIndex.push({
+                id: nodeId,
+                name: entity.名称,
+                group: entity["@type"]
+            });
+
             // 创建节点
             const style = typeStyles[entity["@type"]] || {};
             const node = {
@@ -554,16 +908,8 @@
                 ...style
             };
 
-            // 添加预设位置（如果有）
-            if (presetPositions[entity["@id"]]) {
-                node.x = presetPositions[entity["@id"]].x;
-                node.y = presetPositions[entity["@id"]].y;
-                node.fixed = true;  // 固定重要节点位置
-            }
-
             nodes.add(node);
 
-            // 创建关系边
             const relations = {
                 配偶: "配偶",
                 子女: "子女",
@@ -657,11 +1003,11 @@
                     fit: true
                 },
                 barnesHut: {
-                    gravitationalConstant: -3000,  // 增加绝对值使节点间斥力更大
-                    springLength: 200,  // 增加弹簧长度
-                    springConstant: 0.02,  // 减小弹簧常数
+                    gravitationalConstant: -3000,
+                    springLength: 200,
+                    springConstant: 0.02,
                     damping: 0.09,
-                    avoidOverlap: 0.8  // 增加避免重叠系数
+                    avoidOverlap: 0.8
                 },
                 minVelocity: 0.5,
                 maxVelocity: 50
@@ -674,18 +1020,108 @@
             }
         };
 
-
         // 创建网络图
         const container = document.getElementById("network-container");
         const network = new vis.Network(container, { nodes, edges }, options);
 
+        // 当前高亮节点ID
+        let currentHighlightedNodeId = null;
+
+        // 实体查找
+        const getEntity = (id) => {
+            return dataset.find(e => e["@id"] === id);
+        };
+
+        // 递归格式值
+        const formatValue = (val) => {
+            if (Array.isArray(val)) {
+                return val.map(item => formatValue(item)).join('、');
+            } else if (typeof val === 'object' && val !== null) {
+                // 处理对象值（实体引用）
+                const parts = [];
+                for (const [k, v] of Object.entries(val)) {
+                    if (k === '@id') continue; // 跳过特殊字段
+                    parts.push(`${k}: ${formatValue(v)}`);
+                }
+                return parts.join(', ');
+            }
+            // 特殊处理以#开头的实体引用
+            if (typeof val === 'string' && val.startsWith('#') && getEntity(val)) {
+                const entity = getEntity(val);
+                return `<span class="node-link" data-node-id="${val}">${entity.名称}</span>`;
+            }
+            return val;
+        };
+
+        // 显示节点信息面板
+        const showNodeInfo = (nodeId) => {
+            const entity = getEntity(nodeId);
+            if (!entity) return;
+
+            const panel = document.getElementById("info-panel");
+            let content = `<h3>${entity.名称 || '未命名节点'}</h3>`;
+
+            // 遍历所有属性
+            Object.entries(entity).forEach(([key, value]) => {
+                if (!key.startsWith("@") && key !== "名称") {
+                    // 递归格式化值
+                    let formattedValue = formatValue(value);
+
+                    // 特殊处理对象值
+                    if (typeof value === 'object' && value !== null && value['@id']) {
+                        const refEntity = getEntity(value['@id']);
+                        if (refEntity) {
+                            formattedValue = `<span class="node-link" data-node-id="${value['@id']}">${refEntity.名称}</span>`;
+                        }
+                    }
+
+                    content += `<p><strong>${key}：</strong>${formattedValue}</p>`;
+                }
+            });
+
+            panel.innerHTML = content;
+            panel.style.display = "block";
+
+            // 高亮显示选中节点及其连接
+            const connectedNodeIds = new Set([nodeId]);
+            const connectedEdgeIds = network.getConnectedEdges(nodeId);
+
+            connectedEdgeIds.forEach(edgeId => {
+                const edge = edges.get(edgeId);
+                connectedNodeIds.add(edge.from);
+                connectedNodeIds.add(edge.to);
+            });
+
+            const updates = allNodeIds.map(id => ({
+                id: id,
+                opacity: connectedNodeIds.has(id) ? 1 : 0.2
+            }));
+            nodes.update(updates);
+        };
+
+        // 为信息面板添加事件委托
+        document.getElementById('info-panel').addEventListener('click', (e) => {
+            if (e.target.classList.contains('node-link')) {
+                const nodeId = e.target.getAttribute('data-node-id');
+                if (nodeId) {
+                    // 高亮并聚焦这个节点
+                    highlightNode(nodeId);
+                }
+            }
+        });
+
         // 隐藏加载动画并停止物理引擎
         network.on("stabilizationIterationsDone", function () {
             document.getElementById("loading").style.display = "none";
-            // 稳定后停止物理引擎以提高性能
             setTimeout(() => {
                 network.setOptions({ physics: { enabled: false } });
             }, 1000);
+
+            // 添加搜索功能初始化
+            setupSearch();
+
+            // 初始化缩放控制
+            setupZoomControls();
         });
 
         // 添加稳定进度显示
@@ -694,80 +1130,304 @@
             const progress = Math.round((params.iterations / params.total) * 100);
             loadingText.innerHTML = `正在构建知识图谱...${progress}%`;
         });
+
         network.on("click", (params) => {
             if (params.nodes.length) {
                 const nodeId = params.nodes[0];
-                const entity = dataset.find((e) => e["@id"] === nodeId);
-                const panel = document.getElementById("info-panel");
-
-                let content = `<h3>${entity.名称 || '未命名节点'}</h3>`;
-
-                // 获取实体名称的辅助函数
-                const getEntityName = (id) => {
-                    const refEntity = dataset.find(e => e["@id"] === id);
-                    return refEntity ? refEntity.名称 : id;
-                };
-
-                // 格式化显示属性
-                Object.entries(entity).forEach(([key, value]) => {
-                    if (!key.startsWith("@") && key !== "名称") {
-                        // 递归格式化函数
-                        const formatValue = (val) => {
-                            if (Array.isArray(val)) {
-                                return val.map(item => formatValue(item)).join('、');
-                            } else if (typeof val === 'object' && val !== null) {
-                                if (val["@id"]) {
-                                    const entityName = getEntityName(val["@id"]);
-                                    const otherProps = Object.entries(val)
-                                        .filter(([k]) => !k.startsWith('@'))
-                                        .map(([k, v]) => `${k}: ${formatValue(v)}`)
-                                        .join(', ');
-                                    return `${entityName}${otherProps ? ` (${otherProps})` : ''}`;
-                                }
-                                return Object.entries(val)
-                                    .filter(([k]) => !k.startsWith('@'))
-                                    .map(([k, v]) => `${k}: ${formatValue(v)}`)
-                                    .join(', ');
-                            }
-                            return val;
-                        };
-
-                        content += `<p><strong>${key}：</strong>${formatValue(value)}</p>`;
-                    }
-                });
-
-                panel.innerHTML = content;
-                panel.style.display = "block";
-
-                // 高亮显示选中节点及其连接
-                network.selectNodes([nodeId]);
-                const connectedNodeIds = new Set([nodeId]);
-                const connectedEdgeIds = network.getConnectedEdges(nodeId);
-
-                connectedEdgeIds.forEach(edgeId => {
-                    const edge = edges.get(edgeId);
-                    connectedNodeIds.add(edge.from);
-                    connectedNodeIds.add(edge.to);
-                });
-                const allNodes = nodes.get();
-                const updates = allNodes.map(node => {
-                    return {
-                        id: node.id,
-                        opacity: connectedNodeIds.has(node.id) ? 1 : 0.2,
-                        color: undefined // 确保不修改颜色
-                    };
-                });
-                nodes.update(updates);
+                highlightNode(nodeId);
             } else {
-                // 点击空白处，取消选择
-                network.unselectAll();
+                resetNodeAppearance();
             }
         });
 
         // 双击隐藏面板
         network.on("doubleClick", () => {
             document.getElementById("info-panel").style.display = "none";
+            resetNodeAppearance();
         });
+
+        // 重置所有节点为完全透明
+        function resetNodeAppearance() {
+            const updates = allNodeIds.map(id => ({
+                id: id,
+                opacity: 1
+            }));
+            nodes.update(updates);
+
+            // 移除高亮标记
+            if (currentHighlightedNodeId) {
+                const highlightedNode = document.querySelector(`[data-node-id="${currentHighlightedNodeId}"]`);
+                if (highlightedNode) {
+                    highlightedNode.classList.remove('highlighted');
+                }
+                currentHighlightedNodeId = null;
+            }
+        }
+
+        // ================== 搜索功能实现 ================== 
+
+        // 高亮显示节点
+        function highlightNode(nodeId) {
+            // 移除之前的高亮效果
+            if (currentHighlightedNodeId) {
+                const prevHighlightedNode = document.querySelector(`[data-node-id="${currentHighlightedNodeId}"]`);
+                if (prevHighlightedNode) {
+                    prevHighlightedNode.classList.remove('highlighted');
+                }
+            }
+
+            // 设置当前高亮节点
+            currentHighlightedNodeId = nodeId;
+
+            // 应用高亮动画效果
+            setTimeout(() => {
+                const highlightedNode = document.querySelector(`[data-node-id="${nodeId}"]`);
+                if (highlightedNode) {
+                    highlightedNode.classList.add('highlighted');
+
+                    // 5秒后移除高亮动画
+                    setTimeout(() => {
+                        highlightedNode.classList.remove('highlighted');
+                    }, 5000);
+                }
+            }, 300);
+
+            // 聚焦到该节点
+            network.focus(nodeId, {
+                animation: {
+                    duration: 1000,
+                    easingFunction: 'easeInOutQuart'
+                },
+                scale: 1.2
+            });
+
+            // 选择节点
+            setTimeout(() => {
+                network.selectNodes([nodeId]);
+
+                // 显示节点信息
+                showNodeInfo(nodeId);
+            }, 200);
+        }
+
+        // 初始化搜索功能
+        function setupSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchIcon = document.querySelector('.search-icon');
+            const autocompleteList = document.getElementById('autocomplete-list');
+            const searchHistory = document.getElementById('search-history');
+            const historyItems = document.getElementById('history-items');
+            const clearHistory = document.querySelector('.history-clear');
+            const searchToggle = document.querySelector('.search-toggle');
+            const searchMessage = document.getElementById('search-message');
+
+            // 从localStorage加载搜索历史
+            let searchHistoryData = JSON.parse(localStorage.getItem('searchHistory')) || [];
+            renderSearchHistory();
+
+            // 切换搜索历史显示/隐藏
+            function toggleSearchHistory() {
+                if (searchHistory.style.display === 'block') {
+                    searchHistory.style.display = 'none';
+                } else {
+                    searchHistory.style.display = 'block';
+                    renderSearchHistory();
+                }
+            }
+
+            // 渲染搜索历史
+            function renderSearchHistory() {
+                historyItems.innerHTML = '';
+
+                if (searchHistoryData.length === 0) {
+                    historyItems.innerHTML = '<div class="no-history">暂无搜索历史记录</div>';
+                    return;
+                }
+
+                // 显示最近的10条记录
+                const recentHistory = searchHistoryData.slice(0, 10);
+                recentHistory.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'search-history-item';
+                    historyItem.innerHTML = `
+                        ${item} <span>▶</span>
+                    `;
+                    historyItem.addEventListener('click', () => {
+                        searchInput.value = item;
+                        performSearch(item);
+                        searchHistory.style.display = 'none';
+                    });
+                    historyItems.appendChild(historyItem);
+                });
+            }
+
+            // 清除历史记录
+            clearHistory.addEventListener('click', () => {
+                searchHistoryData = [];
+                localStorage.setItem('searchHistory', JSON.stringify(searchHistoryData));
+                renderSearchHistory();
+            });
+
+            // 添加搜索记录
+            function addToSearchHistory(query) {
+                if (!query.trim()) return;
+
+                // 过滤掉重复项
+                searchHistoryData = searchHistoryData.filter(item =>
+                    item.toLowerCase() !== query.toLowerCase());
+
+                // 添加到最前面
+                searchHistoryData.unshift(query);
+
+                // 只保留最近20条
+                if (searchHistoryData.length > 20) {
+                    searchHistoryData = searchHistoryData.slice(0, 20);
+                }
+
+                localStorage.setItem('searchHistory', JSON.stringify(searchHistoryData));
+                renderSearchHistory();
+            }
+
+            // 自动完成逻辑
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.trim();
+
+                if (query.length < 1) {
+                    autocompleteList.style.display = 'none';
+                    return;
+                }
+
+                // 执行搜索建议
+                const suggestions = searchIndex.filter(item =>
+                    item.name.includes(query) ||
+                    item.id.includes(query) ||
+                    item.group.includes(query)
+                ).slice(0, 8);
+
+                if (suggestions.length === 0) {
+                    autocompleteList.style.display = 'none';
+                    return;
+                }
+
+                // 渲染建议列表
+                autocompleteList.innerHTML = '';
+                suggestions.forEach(item => {
+                    const suggestionItem = document.createElement('div');
+                    suggestionItem.className = 'autocomplete-item';
+                    suggestionItem.innerHTML = `
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-group">${item.group}</div>
+                    `;
+                    suggestionItem.addEventListener('click', () => {
+                        searchInput.value = item.name;
+                        performSearch(item.name);
+                        autocompleteList.style.display = 'none';
+                    });
+                    autocompleteList.appendChild(suggestionItem);
+                });
+
+                autocompleteList.style.display = 'block';
+            });
+
+            // 搜索执行函数
+            function performSearch(query) {
+                if (!query.trim()) return;
+
+                // 在搜索索引中查找匹配项
+                const results = searchIndex.filter(item =>
+                    item.name === query ||
+                    item.name.includes(query) ||
+                    item.id.includes(query) ||
+                    item.group.includes(query)
+                );
+
+                if (results.length === 0) {
+                    showSearchMessage(`没有找到匹配 "${query}" 的节点`, true);
+                    return;
+                }
+
+                // 优先精确匹配项
+                let targetId = results.find(item => item.name === query)?.id;
+                if (!targetId) targetId = results[0].id;
+
+                // 高亮显示匹配的节点
+                highlightNode(targetId);
+
+                // 显示成功信息
+                showSearchMessage(`已定位到: ${query}`, false);
+
+                // 添加到历史记录
+                addToSearchHistory(query);
+            }
+
+            // 显示搜索反馈信息
+            function showSearchMessage(message, isError) {
+                searchMessage.textContent = message;
+                searchMessage.style.display = 'block';
+                searchMessage.style.backgroundColor = isError ? '#b30000' : '#8b0000';
+
+                setTimeout(() => {
+                    searchMessage.style.display = 'none';
+                }, 3000);
+            }
+
+            // 绑定搜索事件
+            searchIcon.addEventListener('click', () => {
+                const query = searchInput.value.trim();
+                if (query) performSearch(query);
+            });
+
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (query) performSearch(query);
+                }
+            });
+
+            // 搜索框外部点击关闭自动完成
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#search-input') &&
+                    !e.target.closest('.autocomplete-list') &&
+                    !e.target.closest('.search-icon')) {
+                    autocompleteList.style.display = 'none';
+                }
+            });
+
+            // 搜索历史外部点击关闭
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#search-history') &&
+                    !e.target.closest('.search-toggle')) {
+                    searchHistory.style.display = 'none';
+                }
+            });
+
+            // 切换按钮点击事件
+            searchToggle.addEventListener('click', () => {
+                if (searchHistory.style.display === 'block') {
+                    searchHistory.style.display = 'none';
+                } else {
+                    searchHistory.style.display = 'block';
+                    renderSearchHistory();
+                }
+            });
+        }
+
+        // 设置缩放控制
+        function setupZoomControls() {
+            document.getElementById('zoom-in').addEventListener('click', () => {
+                network.moveTo({
+                    scale: network.getScale() * 1.3,
+                    animation: { duration: 500 }
+                });
+            });
+
+            document.getElementById('zoom-out').addEventListener('click', () => {
+                network.moveTo({
+                    scale: network.getScale() * 0.7,
+                    animation: { duration: 500 }
+                });
+            });
+        }
     </script>
 </body>
 
